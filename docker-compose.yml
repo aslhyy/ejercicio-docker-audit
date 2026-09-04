@@ -1,4 +1,5 @@
 services:
+
   db:
     image: mysql:8.4
     restart: unless-stopped
@@ -18,7 +19,7 @@ services:
       retries: 5
 
   api:
-    build: .
+    image: aslhyy/ejercicio-docker-audit:latest
     restart: unless-stopped
     environment:
       DB_HOST: db
@@ -31,8 +32,40 @@ services:
     networks:
       - app-network
 
+  dozzle:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - app-network
+
+  kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    volumes:
+      - kuma_data:/app/data
+    networks:
+      - app-network
+
+  proxy:
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "127.0.0.1:81:81"
+    volumes:
+      - proxy_data:/data
+      - proxy_letsencrypt:/etc/letsencrypt
+    networks:
+      - app-network
+
 volumes:
   mysql_data:
+  kuma_data:
+  proxy_data:
+  proxy_letsencrypt:
 
 networks:
   app-network:
