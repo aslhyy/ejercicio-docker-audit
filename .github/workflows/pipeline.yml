@@ -87,3 +87,22 @@ jobs:
           format: 'table'
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
+
+  deploy:
+    name: Deploy EC2
+    needs: trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Desplegar en EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/ejercicio-docker-audit
+            git pull origin main
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
