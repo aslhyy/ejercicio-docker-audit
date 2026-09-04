@@ -1,35 +1,59 @@
+import logging
+import os
+
 import pymysql
-import random
 from flask import Flask, request
 
 app = Flask(__name__)
 
-# 🚨 FALLO 1: Credenciales de BD en texto plano (Bandit / Gitleaks)
-DB_HOST = "servidor-bd-ejemplo"
-DB_USER = "root"
-DB_PASS = "admin_adso_2026_secreto"
-DB_NAME = "legacydb"
+logging.basicConfig(level=logging.INFO)
+
+DB_HOST = os.getenv("DB_HOST", "db")
+DB_USER = os.getenv("DB_USER", "appuser")
+DB_PASS = os.getenv("DB_PASS", "")
+DB_NAME = os.getenv("DB_NAME", "legacydb")
+
 
 @app.route("/")
 def home():
     try:
-        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+        conn = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASS,
+            database=DB_NAME,
+        )
         conn.close()
-        return "<h1>API Legacy TechNova - Funcionando (Más o menos)</h1>"
-    except Exception as e:
-        return f"<h1>Sistema Caído</h1><p>{e}</p>", 500
+
+        return "<h1>API TechNova - Funcionando</h1>"
+
+    except Exception:
+        app.logger.exception("Error al conectar con la base de datos")
+        return "<h1>Servicio temporalmente no disponible</h1>", 500
+
 
 @app.route("/buscar")
 def buscar_usuario():
     usuario_id = request.args.get("id", "1")
-    query_peligrosa = "SELECT * FROM usuarios WHERE id = " + usuario_id
-    return f"Simulando consulta: {query_peligrosa}"
+
+    try:
+        usuario_id = int(usuario_id)
+    except ValueError:
+        return {"error": "ID inválido"}, 400
+
+    query = "SELECT * FROM usuarios WHERE id = %s"
+
+    return {
+        "mensaje": "Consulta preparada correctamente",
+        "query": query,
+        "id": usuario_id,
+    }
+
 
 @app.route("/health")
 def health_check():
-    if random.random() < 0.3:
-        resultado = 1 / 0 
-    return "OK", 200
+    return {"status": "healthy"}, 200
+
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5050, debug=True)
+    app.run(host="127.0.0.1", port=5050, debug=False)
